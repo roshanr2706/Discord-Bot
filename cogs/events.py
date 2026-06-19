@@ -165,8 +165,13 @@ class Events(commands.Cog):
 
     async def _edit_or_repost(self, channel, event_id, embed, event) -> None:
         record = self.posted[event_id]
-        msg = await channel.fetch_message(record["message_id"])
-        await msg.edit(embed=embed)
+        try:
+            msg = await channel.fetch_message(record["message_id"])
+            await msg.edit(embed=embed)
+        except discord.NotFound:
+            # Someone deleted the Discord message — re-post it.
+            msg = await channel.send(embed=embed)
+            record["message_id"] = msg.id
         record["updated"] = event.get("updated")
         record["cancelled"] = False
 
