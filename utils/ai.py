@@ -16,11 +16,28 @@ def _backend() -> str:
     return os.getenv("AI_BACKEND", "anthropic").strip().lower()
 
 
-def _summarize_prompt(text: str) -> str:
-    return (
+def _summarize_prompt(text: str, context: str | None) -> str:
+    parts = []
+    if context:
+        parts.append(
+            "Here is recent chat history for context. Use it to interpret "
+            "references and ongoing topics, but do not summarize it directly:\n"
+            f"{context}"
+        )
+    parts.append(
         "Summarize the following chat transcript. Capture the main topics, "
         "any decisions or conclusions, and notable back-and-forth. Be concise "
         "and write in plain prose or short bullets.\n\n"
+        f"Transcript:\n{text}"
+    )
+    return "\n\n".join(parts)
+
+
+def _condense_prompt(text: str) -> str:
+    return (
+        "Condense the following chat transcript into a compact memory snapshot "
+        "of a few bullet points. Cover the topics discussed, any decisions made, "
+        "and anything useful for understanding future messages. Keep it short.\n\n"
         f"Transcript:\n{text}"
     )
 
@@ -68,5 +85,9 @@ async def _generate(prompt: str, max_tokens: int) -> str:
     raise RuntimeError(f"unknown AI_BACKEND: {backend!r} (use 'anthropic' or 'ollama')")
 
 
-async def summarize(text: str, max_tokens: int = 500) -> str:
-    return await _generate(_summarize_prompt(text), max_tokens)
+async def summarize(text: str, context: str | None = None, max_tokens: int = 500) -> str:
+    return await _generate(_summarize_prompt(text, context), max_tokens)
+
+
+async def condense(text: str, max_tokens: int = 400) -> str:
+    return await _generate(_condense_prompt(text), max_tokens)
