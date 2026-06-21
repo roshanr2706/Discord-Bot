@@ -187,6 +187,7 @@ class Events(commands.Cog):
             embed = msg.embeds[0]
             if not embed.title or not embed.title.startswith("❌ CANCELLED —"):
                 embed.title = f"❌ CANCELLED — {embed.title or '(no title)'}"
+            embed.color = discord.Color(CANCELLED_COLOR)
             await msg.edit(embed=embed)
         record["cancelled"] = True
 
