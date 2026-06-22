@@ -10,3 +10,8 @@ services:
     # survives container rebuilds and restarts.
     volumes:
       - ./config:/app/config
+    # Lets the container reach services on the Docker host via
+    # http://host.docker.internal:... (needed on Linux; useful if Ollama
+    # runs on the same host as this container).
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
