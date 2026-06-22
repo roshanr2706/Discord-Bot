@@ -68,7 +68,7 @@ class Summary(commands.Cog):
 
     # ----- !Summary ----------------------------------------------------
 
-    @commands.command(name="Summary")
+    @commands.command(name="Summary", aliases=["summarize", "summary"])
     async def summary_cmd(self, ctx: commands.Context, count: int = DEFAULT_COUNT):
         """Summarize the last <count> messages (default 50)."""
         if self._lock.locked():

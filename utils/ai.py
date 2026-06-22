@@ -10,6 +10,9 @@ import httpx
 ANTHROPIC_MODEL = "claude-haiku-4-5-20251001"
 DEFAULT_OLLAMA_HOST = "http://localhost:11434"
 DEFAULT_OLLAMA_MODEL = "gemma3:4b"
+# Local generation can be slow, especially the first call (cold model load).
+# Override with OLLAMA_TIMEOUT (seconds) if your hardware needs longer.
+DEFAULT_OLLAMA_TIMEOUT = 300.0
 
 
 def _backend() -> str:
@@ -61,8 +64,12 @@ async def _anthropic(prompt: str, max_tokens: int) -> str:
 async def _ollama(prompt: str, max_tokens: int) -> str:
     host = os.getenv("OLLAMA_HOST", DEFAULT_OLLAMA_HOST).rstrip("/")
     model = os.getenv("OLLAMA_MODEL", DEFAULT_OLLAMA_MODEL)
+    read_timeout = float(os.getenv("OLLAMA_TIMEOUT", DEFAULT_OLLAMA_TIMEOUT))
 
-    async with httpx.AsyncClient(timeout=120) as client:
+    # Fail fast if the host is unreachable (connect), but allow a long read so
+    # slow local generation doesn't get cut off.
+    timeout = httpx.Timeout(read_timeout, connect=10.0)
+    async with httpx.AsyncClient(timeout=timeout) as client:
         resp = await client.post(
             f"{host}/api/generate",
             json={

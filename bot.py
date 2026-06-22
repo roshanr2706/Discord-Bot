@@ -52,6 +52,16 @@ async def on_ready():
     log.info("logged in as %s (id %s)", bot.user, bot.user.id if bot.user else "?")
 
 
+@bot.event
+async def on_command_error(ctx, error):
+    if isinstance(error, commands.CommandNotFound):
+        return  # someone typed an unknown !command — not worth logging
+    if isinstance(error, commands.CheckFailure):
+        await ctx.reply("You don't have permission to use that.")
+        return
+    log.error("command error in %s", ctx.command, exc_info=error)
+
+
 def main():
     token = os.getenv("DISCORD_TOKEN")
     if not token:
