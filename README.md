@@ -32,6 +32,28 @@ A small Discord bot with three independent features:
    python bot.py
    ```
 
+## Run with Docker
+
+The repo ships a `Dockerfile` and `docker-compose.yml`. Secrets and runtime
+state stay out of the image: `.env` is loaded at run time and `config/` is
+mounted as a volume (so `credentials.json` is readable and
+`posted_events.json` / `chat_memory.json` persist across rebuilds).
+
+```bash
+cp .env.example .env          # then fill it in
+mkdir -p config               # drop credentials.json here if using calendar
+docker compose up -d --build  # build + run detached
+docker compose logs -f        # follow logs
+```
+
+Common commands:
+
+```bash
+docker compose restart        # restart the bot
+docker compose down           # stop + remove
+docker compose up -d --build  # rebuild after code changes
+```
+
 ## Environment variables
 
 | Var | Used by | Notes |

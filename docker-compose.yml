@@ -1,0 +1,12 @@
+services:
+  bot:
+    build: .
+    container_name: boulder-bot
+    restart: unless-stopped
+    # Loads DISCORD_TOKEN, channel IDs, AI keys, etc. from .env on the host.
+    env_file: .env
+    # Mounts the host's config/ into the container so credentials.json is
+    # available and runtime state (posted_events.json, chat_memory.json)
+    # survives container rebuilds and restarts.
+    volumes:
+      - ./config:/app/config

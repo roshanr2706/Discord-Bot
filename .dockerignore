@@ -1,0 +1,13 @@
+# Never bake secrets or runtime state into the image — these are provided at
+# run time via env_file (.env) and a mounted volume (config/).
+.env
+config/
+
+# Local-only cruft.
+.venv/
+.git/
+.gitignore
+__pycache__/
+*.pyc
+scripts/
+README.md
