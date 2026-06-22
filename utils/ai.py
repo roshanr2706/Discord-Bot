@@ -30,7 +30,9 @@ def _summarize_prompt(text: str, context: str | None) -> str:
     parts.append(
         "Summarize the following chat transcript. Capture the main topics, "
         "any decisions or conclusions, and notable back-and-forth. Be concise "
-        "and write in plain prose or short bullets.\n\n"
+        "and write in plain prose or short bullets. Attribute points to people "
+        "by the display names shown in the transcript (e.g. 'Alex said...'), "
+        "not generic labels like 'a user' or 'one participant'.\n\n"
         f"Transcript:\n{text}"
     )
     return "\n\n".join(parts)
@@ -40,7 +42,9 @@ def _condense_prompt(text: str) -> str:
     return (
         "Condense the following chat transcript into a compact memory snapshot "
         "of a few bullet points. Cover the topics discussed, any decisions made, "
-        "and anything useful for understanding future messages. Keep it short.\n\n"
+        "and anything useful for understanding future messages. Keep the display "
+        "names of who said what (e.g. 'Alex is bringing snacks'), not generic "
+        "labels like 'a user'. Keep it short.\n\n"
         f"Transcript:\n{text}"
     )
 
@@ -104,7 +108,37 @@ async def summarize(text: str, context: str | None = None, max_tokens: int | Non
     return await _generate(_summarize_prompt(text, context), max_tokens)
 
 
+def _split_on_lines(text: str, budget: int) -> list[str]:
+    """Split text into chunks of at most `budget` chars, breaking on newlines."""
+    chunks: list[str] = []
+    current = ""
+    for line in text.split("\n"):
+        if current and len(current) + 1 + len(line) > budget:
+            chunks.append(current)
+            current = line
+        else:
+            current = f"{current}\n{line}" if current else line
+    if current:
+        chunks.append(current)
+    return chunks
+
+
 async def condense(text: str, max_tokens: int | None = None) -> str:
     if max_tokens is None:
         max_tokens = int(os.getenv("AI_MEMORY_MAX_TOKENS", "600"))
-    return await _generate(_condense_prompt(text), max_tokens)
+
+    # 3 hours of chat can exceed the model's context window. If the transcript
+    # is too big, condense it in pieces and then condense those notes together
+    # (map-reduce) so nothing gets silently truncated.
+    budget = int(os.getenv("AI_INPUT_CHAR_BUDGET", "16000"))
+    if len(text) <= budget:
+        return await _generate(_condense_prompt(text), max_tokens)
+
+    partials = []
+    for chunk in _split_on_lines(text, budget):
+        partials.append(await _generate(_condense_prompt(chunk), max_tokens))
+    combined = "\n".join(partials)
+    # Safety net: if even the combined notes are huge, trim before the final pass.
+    if len(combined) > budget:
+        combined = combined[:budget]
+    return await _generate(_condense_prompt(combined), max_tokens)
