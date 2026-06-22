@@ -76,37 +76,47 @@ class Summary(commands.Cog):
             return
 
         async with self._lock:
-            messages = []
-            async for msg in ctx.channel.history(limit=count, before=ctx.message):
-                if msg.author.bot or not msg.content:
-                    continue
-                messages.append(msg)
-
-            if not messages:
-                await ctx.reply("Nothing to summarize here.")
-                return
-
-            messages.reverse()  # chronological order for the transcript
-            transcript = "\n".join(_format_message(m) for m in messages)
-
-            context = memory.get_context_block()
+            # Show we're working — this can take a while on the AI call.
+            await ctx.message.add_reaction("⏳")
             try:
-                text = await ai.summarize(transcript, context=context)
-            except Exception:
-                log.exception("summarize failed")
-                await ctx.reply("Something went wrong generating the summary.")
-                return
+                messages = []
+                async for msg in ctx.channel.history(limit=count, before=ctx.message):
+                    if msg.author.bot or not msg.content:
+                        continue
+                    messages.append(msg)
 
-            footer_ctx = "with chat context" if context else "no context yet"
-            embed = discord.Embed(
-                title=f"📝 Summary — last {len(messages)} messages",
-                description=text,
-                color=SUMMARY_COLOR,
-            )
-            embed.set_footer(
-                text=f"Requested by {ctx.author.display_name} · {footer_ctx}"
-            )
-            await ctx.reply(embed=embed)
+                if not messages:
+                    await ctx.reply("Nothing to summarize here.")
+                    return
+
+                messages.reverse()  # chronological order for the transcript
+                transcript = "\n".join(_format_message(m) for m in messages)
+
+                context = memory.get_context_block()
+                try:
+                    text = await ai.summarize(transcript, context=context)
+                except Exception:
+                    log.exception("summarize failed")
+                    await ctx.reply("Something went wrong generating the summary.")
+                    return
+
+                footer_ctx = "with chat context" if context else "no context yet"
+                embed = discord.Embed(
+                    title=f"📝 Summary — last {len(messages)} messages",
+                    description=text,
+                    color=SUMMARY_COLOR,
+                )
+                embed.set_footer(
+                    text=f"Requested by {ctx.author.display_name} · {footer_ctx}"
+                )
+                await ctx.reply(embed=embed)
+                await ctx.message.add_reaction("✅")
+            finally:
+                # Clear our hourglass (a bot can always remove its own reaction).
+                try:
+                    await ctx.message.remove_reaction("⏳", ctx.me)
+                except discord.HTTPException:
+                    pass
 
     # ----- !memory (debug, mod only) -----------------------------------
 
