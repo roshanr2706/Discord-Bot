@@ -66,6 +66,38 @@ class Summary(commands.Cog):
     async def cog_unload(self):
         self.memory_task.cancel()
 
+    # ----- helpers -----------------------------------------------------
+
+    @staticmethod
+    def _chunk(text: str, size: int = 2000) -> list[str]:
+        """Split text into <=size pieces, breaking on newlines where possible."""
+        chunks: list[str] = []
+        current = ""
+        for line in text.split("\n"):
+            while len(line) > size:  # a single very long line — hard split
+                if current:
+                    chunks.append(current)
+                    current = ""
+                chunks.append(line[:size])
+                line = line[size:]
+            if current and len(current) + 1 + len(line) > size:
+                chunks.append(current)
+                current = line
+            else:
+                current = f"{current}\n{line}" if current else line
+        if current:
+            chunks.append(current)
+        return chunks
+
+    async def _reply_chunks(self, ctx: commands.Context, text: str) -> None:
+        """Reply with the first chunk, then send the rest as follow-ups."""
+        chunks = self._chunk(text)
+        for i, chunk in enumerate(chunks):
+            if i == 0:
+                await ctx.reply(chunk)
+            else:
+                await ctx.send(chunk)
+
     # ----- !Summary ----------------------------------------------------
 
     @commands.command(name="Summary", aliases=["summarize", "summary"])
@@ -101,18 +133,10 @@ class Summary(commands.Cog):
                     return
 
                 footer_ctx = "with chat context" if context else "no context yet"
-                # Discord caps embed descriptions at 4096 chars.
-                if len(text) > 4096:
-                    text = text[:4093] + "..."
-                embed = discord.Embed(
-                    title=f"📝 Summary — last {len(messages)} messages",
-                    description=text,
-                    color=SUMMARY_COLOR,
+                header = (
+                    f"📝 **Summary — last {len(messages)} messages** · {footer_ctx}"
                 )
-                embed.set_footer(
-                    text=f"Requested by {ctx.author.display_name} · {footer_ctx}"
-                )
-                await ctx.reply(embed=embed)
+                await self._reply_chunks(ctx, f"{header}\n{text}")
                 await ctx.message.add_reaction("✅")
             finally:
                 # Clear our hourglass (a bot can always remove its own reaction).

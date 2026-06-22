@@ -76,7 +76,13 @@ async def _ollama(prompt: str, max_tokens: int) -> str:
                 "model": model,
                 "prompt": prompt,
                 "stream": False,
-                "options": {"num_predict": max_tokens},
+                "options": {
+                    "num_predict": max_tokens,
+                    # Ollama defaults to a tiny context window (~2048), which
+                    # silently truncates long transcripts. Bump it so the whole
+                    # prompt (instruction + chat) actually fits.
+                    "num_ctx": int(os.getenv("OLLAMA_NUM_CTX", "8192")),
+                },
             },
         )
         resp.raise_for_status()
