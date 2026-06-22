@@ -92,9 +92,13 @@ async def _generate(prompt: str, max_tokens: int) -> str:
     raise RuntimeError(f"unknown AI_BACKEND: {backend!r} (use 'anthropic' or 'ollama')")
 
 
-async def summarize(text: str, context: str | None = None, max_tokens: int = 500) -> str:
+async def summarize(text: str, context: str | None = None, max_tokens: int | None = None) -> str:
+    if max_tokens is None:
+        max_tokens = int(os.getenv("AI_SUMMARY_MAX_TOKENS", "1000"))
     return await _generate(_summarize_prompt(text, context), max_tokens)
 
 
-async def condense(text: str, max_tokens: int = 400) -> str:
+async def condense(text: str, max_tokens: int | None = None) -> str:
+    if max_tokens is None:
+        max_tokens = int(os.getenv("AI_MEMORY_MAX_TOKENS", "600"))
     return await _generate(_condense_prompt(text), max_tokens)

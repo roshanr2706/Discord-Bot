@@ -101,6 +101,9 @@ class Summary(commands.Cog):
                     return
 
                 footer_ctx = "with chat context" if context else "no context yet"
+                # Discord caps embed descriptions at 4096 chars.
+                if len(text) > 4096:
+                    text = text[:4093] + "..."
                 embed = discord.Embed(
                     title=f"📝 Summary — last {len(messages)} messages",
                     description=text,
