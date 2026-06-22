@@ -132,10 +132,7 @@ class Summary(commands.Cog):
                     await ctx.reply("Something went wrong generating the summary.")
                     return
 
-                footer_ctx = "with chat context" if context else "no context yet"
-                header = (
-                    f"📝 **Summary — last {len(messages)} messages** · {footer_ctx}"
-                )
+                header = f"📝 **Summary — last {len(messages)} messages**"
                 await self._reply_chunks(ctx, f"{header}\n{text}")
                 await ctx.message.add_reaction("✅")
             finally:
