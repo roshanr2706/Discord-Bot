@@ -70,9 +70,8 @@ class Boulder(commands.Cog):
         mentioned = self.bot.user in message.mentions
         has_trigger = self._has_trigger(message.content)
 
-        if mentioned and (has_trigger or True):
-            # Direct @mention: always respond.
-            should_chime = True
+        if mentioned:
+            should_chime = True  # direct @mention: always respond
         elif has_trigger:
             should_chime = random.random() < self.chance
         else:
